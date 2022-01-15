@@ -14,14 +14,16 @@ def makeAQuery(bounds, sunnyAttracions, things):
 
 
 
-def getLatLonAndComments(coords):
+
+
+def getLatLonAndComments(coords : tuple) -> tuple:
     lat = []
     lon = []
     comments = []
     for i in range(len(coords.ways)):
         comment = ''
-        lat.append(coords.ways[i].nodes[0].lat)
-        lon.append(coords.ways[i].nodes[0].lon)
+        lat.append(float(coords.ways[i].nodes[0].lat))
+        lon.append(float(coords.ways[i].nodes[0].lon))
         str = json.loads(json.dumps(coords.ways[i].tags))
         str2 = tuple(coords.ways[i].tags)
         for k in range(len(str2)):
