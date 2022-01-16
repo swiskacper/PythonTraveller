@@ -13,4 +13,5 @@ class Weather:
                           sort_keys=True, indent=4)
 
     def toString(self):
-        return "Your city: " + self.city + "<br> Current temp: " + str(self.temp) +"<br> Wind speed: " + str(self.speed) + "km/h <br>" + "Clouds: " + str(self.clouds) +"%"
+        return "Your city: " + self.city + "<br> Current temp: " + str(self.temp) + "<br> Wind speed: " + str(
+            self.speed) + "m/s <br>" + "Clouds: " + str(self.clouds) + "%"

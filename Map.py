@@ -1,168 +1,117 @@
 import requests
 from numpy import array
+from plotly.graph_objs import Figure, Marker
 
 import Util
 import random
 import plotly.graph_objects as go
 import copy
 import weather
-import lista
 
 accesstokenMapbox = 'pk.eyJ1Ijoic3dpc2thY3BlciIsImEiOiJja3k4bWk2ZzgxNGVjMnBub2R5Y2xrZWN4In0.CaeWG-UQNST74lph1zXXgQ'
 
 
-def display_map(coords, startCoord, kindOfPlace, weather: weather):
-    latHeatMap, lonHeatMap = getBorderCoords("driving", "30", startCoord)
-    print(len(coords))
-    fig = makeAMap(coords, kindOfPlace, latHeatMap, lonHeatMap, startCoord, weather)
-
+def display_map(coords: list, startCoord: list, kindOfPlace: list, currentWeather: weather):
+    latBorder, lonBorder = getBorderCoords("driving", "60", startCoord)
+    fig = makeAMap(coords, kindOfPlace, latBorder, lonBorder, startCoord, currentWeather)
     fig.show()
 
 
-def makeAMap(coords, kindOfPlace, latBorder, lonBorder, startCoord, weather: weather):
+def makeAMap(coords: list, kindOfPlace: list, latBorder: list, lonBorder: list, startCoord: list,
+             currentWeather: weather) -> Figure:
     markerTemplate = dict(
-        size=9,
-        color='#0000FF',
+        size=12,
         colorscale='Viridis')
 
     fig, markerCurrent = createCurrentLocalizaitionMarker(markerTemplate, startCoord)
-
     borderMarker = copy.deepcopy(markerTemplate)
-
     createBorder(fig, latBorder, lonBorder, borderMarker)
-    latBordersDriving60, lonBordersDriving60 = getBorderCoords("driving", "60", startCoord)
-    latBordersDriving30, lonBordersDriving30 = getBorderCoords("driving", "30", startCoord)
-    latBordersDriving15, lonBordersDriving15 = getBorderCoords("driving", "15", startCoord)
-    latBordersWalking30, lonBordersWalking30 = getBorderCoords("walking", "30", startCoord)
-    latBordersWalking60, lonBordersWalking60 = getBorderCoords("walking", "60", startCoord)
-    latBordersWalking15, lonBordersWalking15 = getBorderCoords("walking", "15", startCoord)
-    latBordersCycling15, lonBordersCycling15 = getBorderCoords("cycling", "15", startCoord)
-    latBordersCycling30, lonBordersCycling30 = getBorderCoords("cycling", "30", startCoord)
-    latBordersCycling60, lonBordersCycling60 = getBorderCoords("cycling", "60", startCoord)
     idx = 0
     markersPOILON = []
     markersPOI = []
     markersPOILAT = []
     for i in range(len(coords)):
-        comments, lat, lon = Util.getLatLonAndComments(coords[i])
-        color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
-        newMarker = copy.deepcopy(markerTemplate)
-        newMarker['color'] = color
-        markersPOI.append(newMarker)
-        markersPOILON.append(dict(lat))
-        markersPOILAT.append(dict(lon))
-        createPointOfIntrest(comments, fig, idx, kindOfPlace, lat, lon, newMarker)
+        createPOIs(coords, fig, i, idx, kindOfPlace, markerTemplate, markersPOI, markersPOILAT, markersPOILON)
         idx = idx + 1
-
     setMapProperties(fig, startCoord)
+    makeDropDownList(borderMarker, fig, markerCurrent, markersPOI, markersPOILAT, markersPOILON, startCoord)
+    makeText(fig, currentWeather)
 
-    lista1 = lista
-    print(len(markersPOI))
-    print(len(markersPOILAT))
-    print(len(markersPOILON))
+    return fig
 
-    print((markersPOI))
-    print((markersPOILAT))
-    print((markersPOILON))
 
+def makeText(fig: Figure, currentWeather: weather):
+    fig.update_layout(
+        title_x=0.5,
+        title_y=0.97,
+        title_text=currentWeather.toString(),
+    )
+
+
+def createPOIs(coords: list, fig: Figure, i: int, idx: int, kindOfPlace: list, markerTemplate: dict,
+               markersPOI: list, markersPOILAT: list, markersPOILON: list):
+    comments, lat, lon = Util.getLatLonAndComments(coords[i])
+    color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+    newMarker = copy.deepcopy(markerTemplate)
+    newMarker['color'] = color
+    markersPOI.append(newMarker)
+    markersPOILON.append(lat)
+    markersPOILAT.append(lon)
+    createPointOfIntrest(comments, fig, idx, kindOfPlace, lat, lon, newMarker)
+
+
+def makeDropDownList(borderMarker: dict, fig: Figure, markerCurrent: dict, markersPOI: list, markersPOILAT: list,
+                     markersPOILON: list, startCoord: list):
     fig.update_layout(
         updatemenus=list([
             dict(buttons=list([
+                makeADict(borderMarker, getBorderCoords("driving", "60", startCoord), markerCurrent, markersPOI,
+                          markersPOILAT, markersPOILON, startCoord, "Driving 60"),
                 dict(
-                    args=[{'marker': lista1.lat([markerCurrent], [borderMarker], markersPOI),
-                           'lon': lista1.lat([float(startCoord[0])], latBordersDriving60, markersPOILAT),
-                           'lat': lista1.lat([float(startCoord[1])], lonBordersDriving60, markersPOILON),
-                           'mode': ['markers', 'lines', 'markers']}],
-                    label='Driving 60',
-                    method='update',
-                    # 'mode':'lines'
+                    makeADict(borderMarker, getBorderCoords("driving", "30", startCoord), markerCurrent, markersPOI,
+                              markersPOILAT, markersPOILON, startCoord, "Driving 30"),
                 ), dict(
-                    args=[{'marker': lista1.lat([markerCurrent], [borderMarker], markersPOI),
-                           'lon': lista1.lat([float(startCoord[0])], latBordersDriving30, markersPOILAT),
-                           'lat': lista1.lat([float(startCoord[1])], lonBordersDriving30, markersPOILON),
-                           'mode': ['markers', 'lines', 'markers']}],
-                    label='Driving 30',
-                    method='update',
-                    # 'mode':'lines'
+                    makeADict(borderMarker, getBorderCoords("driving", "15", startCoord), markerCurrent, markersPOI,
+                              markersPOILAT, markersPOILON, startCoord, "Driving 15"),
                 ), dict(
-                    args=[{'marker': lista1.lat([markerCurrent], [borderMarker], markersPOI),
-                           'lon': lista1.lat([float(startCoord[0])], latBordersDriving15, markersPOILAT[0]),
-                           'lat': lista1.lat([float(startCoord[1])], lonBordersDriving15, markersPOILON[0]),
-                           'mode': ['markers', 'lines', 'markers']}],
-                    label='Driving 15',
-                    method='update',
-                    # 'mode':'lines'
+                    makeADict(borderMarker, getBorderCoords("cycling", "60", startCoord), markerCurrent, markersPOI,
+                              markersPOILAT, markersPOILON, startCoord, "Cycling 60"),
                 ), dict(
-                    args=[{'marker': lista1.lat([markerCurrent], [borderMarker], markersPOI),
-                           'lon': lista1.lat([float(startCoord[0])], latBordersCycling60, markersPOILAT[0]),
-                           'lat': lista1.lat([float(startCoord[1])], lonBordersCycling60, markersPOILON[0]),
-                           'mode': ['markers', 'lines', 'markers']}],
-                    label='Cycling 60',
-                    method='update',
-                    # 'mode':'lines'
+                    makeADict(borderMarker, getBorderCoords("cycling", "30", startCoord), markerCurrent, markersPOI,
+                              markersPOILAT, markersPOILON, startCoord, "Cycling 30"),
                 ), dict(
-                    args=[{'marker': lista1.lat([markerCurrent], [borderMarker], markersPOI),
-                           'lon': lista1.lat([float(startCoord[0])], latBordersCycling30, markersPOILAT[0]),
-                           'lat': lista1.lat([float(startCoord[1])], lonBordersCycling30, markersPOILON[0]),
-                           'mode': ['markers', 'lines', 'markers']}],
-                    label='Cycling 30',
-                    method='update',
-                    # 'mode':'lines'
+                    makeADict(borderMarker, getBorderCoords("cycling", "15", startCoord), markerCurrent, markersPOI,
+                              markersPOILAT, markersPOILON, startCoord, "Cycling 15"),
                 ), dict(
-                    args=[{'marker': lista1.lat([markerCurrent], [borderMarker], markersPOI),
-                           'lon': lista1.lat([float(startCoord[0])], latBordersCycling15, markersPOILAT[0]),
-                           'lat': lista1.lat([float(startCoord[1])], lonBordersCycling15, markersPOILON[0]),
-                           'mode': ['markers', 'lines', 'markers']}],
-                    label='Cycling 15',
-                    method='update',
-                    # 'mode':'lines'
-                ), dict(
-                    args=[{'marker': lista1.lat([markerCurrent], [borderMarker], markersPOI),
-                           'lon': lista1.lat([float(startCoord[0])], latBordersWalking60, markersPOILAT),
-                           'lat': lista1.lat([float(startCoord[1])], lonBordersWalking60, markersPOILON),
-                           'mode': ['markers', 'lines', 'markers']}],
-                    label='Walking 60',
-                    method='update',
-                    # 'mode':'lines'
-                ), createaDict(latBordersWalking30, lista1, lonBordersWalking30, borderMarker, markerCurrent, markersPOI,
-                               markersPOILAT, markersPOILON, startCoord, "Walking 30"),
-                dict(args=[{'marker': lista1.lat([markerCurrent], [borderMarker], markersPOI),
-                           'lon': lista1.lat([float(startCoord[0])], latBordersWalking15, markersPOILAT[0]),
-                           'lat': lista1.lat([float(startCoord[1])], lonBordersWalking15, markersPOILON[0]),
-                           'mode': ['markers', 'lines', 'markers']}],
-                    label='Walking 15',
-                    method='update',
-                    # 'mode':'lines'
+                    makeADict(borderMarker, getBorderCoords("walking", "60", startCoord), markerCurrent, markersPOI,
+                              markersPOILAT, markersPOILON, startCoord, "Walking 60"),
                 ),
+                dict(makeADict(borderMarker, getBorderCoords("walking", "30", startCoord), markerCurrent, markersPOI,
+                               markersPOILAT, markersPOILON, startCoord, "Walking 30"),
+                     ),
+                dict(makeADict(borderMarker, getBorderCoords("walking", "15", startCoord), markerCurrent, markersPOI,
+                               markersPOILAT, markersPOILON, startCoord, "Walking 15"),
+                     ),
 
             ]),
             )
         ])
     )
 
-    fig.update_layout(
-        title_x=0.5,
-        title_y=0.97,
-        title_text=weather.toString(),
-    )
 
-    return fig
-
-
-def createaDict(latBordersWalking30, lista1, lonBordersWalking30, marker1, markerCurrent, markers2, markersLat2,
-                markersLon2, startCoord, label):
+def makeADict(borderMarker: dict, latBorders: tuple, markerCurrent: dict, markersPOI: list, markersPOILAT: list,
+              markersPOILON: list, startCoord: list, label: str) -> dict:
     return dict(
-        args=[{'marker': lista1.lat([markerCurrent], [marker1], markers2),
-               'lon': lista1.lat([float(startCoord[0])], latBordersWalking30, markersLat2[0]),
-               'lat': lista1.lat([float(startCoord[1])], lonBordersWalking30, markersLon2[0]),
-               'mode': ['markers', 'lines', 'markers']}],
+        args=[{'marker': makeResult([markerCurrent], [borderMarker], markersPOI),
+               'lon': makeResult([float(startCoord[0])], latBorders[0], markersPOILAT),
+               'lat': makeResult([float(startCoord[1])], latBorders[1], markersPOILON),
+               'mode': ['markers', 'lines', 'markers','markers','markers','markers']}],
         label=label,
         method='update',
-        # 'mode':'lines'
     )
 
 
-def setMapProperties(fig, startCoord):
+def setMapProperties(fig: Figure, startCoord: list):
     fig.update_layout(
         hovermode='closest',
         mapbox=dict(
@@ -179,7 +128,8 @@ def setMapProperties(fig, startCoord):
     )
 
 
-def createPointOfIntrest(comments, fig, idx, kindOfPlace, lat, lon, newMarker):
+def createPointOfIntrest(comments: str, fig: Figure, idx: int, kindOfPlace: list, lat: float, lon: float,
+                         newMarker: dict):
     fig.add_trace(go.Scattermapbox(
         lat=lat,
         lon=lon,
@@ -187,54 +137,46 @@ def createPointOfIntrest(comments, fig, idx, kindOfPlace, lat, lon, newMarker):
         marker=newMarker,
         text=comments,
         name=kindOfPlace[idx]
-
-    ),
-    )
+    ), )
 
 
-def createBorder(fig, latBorder, lonBorder, marker1):
+def createBorder(fig: Figure, latBorder: list, lonBorder: list, marker1: dict):
     fig.add_trace(go.Scattermapbox(
         lat=lonBorder,
         lon=latBorder,
         mode='lines',
         marker=marker1,
         text=" ",
-        name="Border"
-    ))
+        name="Border"))
 
 
-def createCurrentLocalizaitionMarker(markerTemplate, startCoord):
+def createCurrentLocalizaitionMarker(markerTemplate: dict, startCoord: list) -> (Figure, Marker):
     markerCurrent = copy.deepcopy(markerTemplate)
     markerCurrent['color'] = '#008000'
-    print()
+    markerCurrent['size'] = 12
     fig = go.Figure(go.Scattermapbox(
         lat=array(float((startCoord[1]))),
         lon=array(float((startCoord[0]))),
         mode='markers',
         marker=markerCurrent,
         text="Your localization",
-        name="Current location"
-    ))
+        name="Current location"))
     return fig, markerCurrent
 
 
-def changeLines(fig, latHeatMap, lonHeatMap):
+def changeLines(fig: Figure, latBorder: list, lonBorder: list) -> (list, list):
     fig.add_trace(go.Scattermapbox(
-        lat=lonHeatMap,
-        lon=latHeatMap,
+        lat=lonBorder,
+        lon=latBorder,
         mode='lines',
         marker=go.scattermapbox.Marker(
-            size=9,
-            color='#0000FF',
-        ),
+            size=12),
         text=" ",
-        name="Border"
-    ))
-
-    return latHeatMap, lonHeatMap
+        name="Border"))
+    return latBorder, lonBorder
 
 
-def getBorderCoords(vehicle, minutes, startCoord):
+def getBorderCoords(vehicle: str, minutes: str, startCoord: list) -> (list, list):
     prefix = "https://api.mapbox.com/isochrone/v1/mapbox/"
     postfix = "&polygons=true&access_token="
     uri = prefix + vehicle + '/' + startCoord[0] + ',' + startCoord[
@@ -247,3 +189,10 @@ def getBorderCoords(vehicle, minutes, startCoord):
         lat.append(result2[i][0])
         lon.append(result2[i][1])
     return lat, lon
+
+
+def makeResult(currentLocalizationArg: list, borderArg: list, poiArg: list) -> list:
+    result = [currentLocalizationArg, borderArg]
+    for i in range(len(poiArg)):
+        result.append(poiArg[i])
+    return result
