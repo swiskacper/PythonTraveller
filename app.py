@@ -11,12 +11,12 @@ import overpy
 app = Flask(__name__)
 
 
-@app.route('/')
+@app.route('/hello')
 def hello_world():
-    return 'dddd!'
+    return 'hello!'
 
 
-@app.route('/city')
+@app.route('/')
 def search_city():
     c1 = get_City()
     API_KEY = 'd2b60a612ecb829daf83449f9fe86395'
@@ -41,20 +41,36 @@ def getOverpassResult(currentCity: city, currentWeather: weather):
     bounds = [float(currentCity.lon) - 0.6, float(currentCity.lat) - 0.6, float(currentCity.lon) + 0.6,
               float(currentCity.lat) + 0.6]
     # sunnyAttracions = ['"leisure"="park"', '"tourism"="museum"']
-    sunnyAttracions = ['"amenity"="cinema"', '"tourism"="museum"', '"leisure"="park"', '"amenity"="food_court"']
-    # kindOfPlace = ['cinema', 'museum']
-    kindOfPlace = ['cinema', 'museum', 'park', 'food_court']
-    things = ['node', 'way', 'relation']
-    api = overpy.Overpass()
+    kindOfPlace, sunnyAttracions, things = getPlacesToOverpass(currentWeather)
+    overpyRequester = overpy.Overpass()
     resultTuple = []
     k = 1
-    for i in range(len(sunnyAttracions)):
+    for element in sunnyAttracions:
         # http://www.overpass-api.de/api/status
         time.sleep(15)
-        resultTuple.append(api.query(Util.makeAQuery(bounds, sunnyAttracions[i], things)))
+        try:
+            resultTuple.append(overpyRequester.query(Util.makeAQuery(bounds, element, things)))
+        except Exception as e:
+            print(e)
+            getOverpassResult(currentCity, currentWeather)
         k = k + 1
 
     Map.display_map(resultTuple, [currentCity.lat, currentCity.lon], kindOfPlace, currentWeather)
+
+
+def getPlacesToOverpass(currentWeather: weather) -> tuple:
+    if currentWeather.temp < 15:
+        sunnyAttracions = ['"amenity"="cinema"', '"tourism"="museum"']
+        kindOfPlace = ['cinema', 'museum']
+        # kindOfPlace = ['cinema', 'museum', 'park', 'restaurant', 'theatre']
+        things = ['node', 'way', 'relation']
+    else:
+        sunnyAttracions = ['"amenity"="cinema"', '"tourism"="museum"',
+                           '"amenity"="restaurant"', '"amenity"="theatre"']
+        # kindOfPlace = ['cinema', 'museum']
+        kindOfPlace = ['cinema', 'museum', 'restaurant', 'theatre']
+        things = ['node', 'way', 'relation']
+    return kindOfPlace, sunnyAttracions, things
 
 
 def get_City() -> city:

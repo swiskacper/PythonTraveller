@@ -20,7 +20,7 @@ def display_map(coords: list, startCoord: list, kindOfPlace: list, currentWeathe
 def makeAMap(coords: list, kindOfPlace: list, latBorder: list, lonBorder: list, startCoord: list,
              currentWeather: weather) -> Figure:
     markerTemplate = dict(
-        size=12,
+        size=9,
         colorscale='Viridis')
 
     fig, markerCurrent = createCurrentLocalizaitionMarker(markerTemplate, startCoord)
@@ -30,7 +30,7 @@ def makeAMap(coords: list, kindOfPlace: list, latBorder: list, lonBorder: list, 
     markersPOILON = []
     markersPOI = []
     markersPOILAT = []
-    for i in range(len(coords)):
+    for i, element in enumerate(coords):
         createPOIs(coords, fig, i, idx, kindOfPlace, markerTemplate, markersPOI, markersPOILAT, markersPOILON)
         idx = idx + 1
     setMapProperties(fig, startCoord)
@@ -105,10 +105,16 @@ def makeADict(borderMarker: dict, latBorders: tuple, markerCurrent: dict, marker
         args=[{'marker': makeResult([markerCurrent], [borderMarker], markersPOI),
                'lon': makeResult([float(startCoord[0])], latBorders[0], markersPOILAT),
                'lat': makeResult([float(startCoord[1])], latBorders[1], markersPOILON),
-               'mode': ['markers', 'lines', 'markers','markers','markers','markers']}],
+               'mode': createMode(markersPOI)}],
         label=label,
         method='update',
     )
+
+
+def createMode(markersPOI: list) -> list:
+    mode = ['markers', 'lines']
+    mode += markersPOI
+    return mode
 
 
 def setMapProperties(fig: Figure, startCoord: list):
@@ -153,7 +159,7 @@ def createBorder(fig: Figure, latBorder: list, lonBorder: list, marker1: dict):
 def createCurrentLocalizaitionMarker(markerTemplate: dict, startCoord: list) -> (Figure, Marker):
     markerCurrent = copy.deepcopy(markerTemplate)
     markerCurrent['color'] = '#008000'
-    markerCurrent['size'] = 12
+    markerCurrent['size'] = 9
     fig = go.Figure(go.Scattermapbox(
         lat=array(float((startCoord[1]))),
         lon=array(float((startCoord[0]))),
@@ -170,7 +176,7 @@ def changeLines(fig: Figure, latBorder: list, lonBorder: list) -> (list, list):
         lon=latBorder,
         mode='lines',
         marker=go.scattermapbox.Marker(
-            size=12),
+            size=9),
         text=" ",
         name="Border"))
     return latBorder, lonBorder
@@ -185,14 +191,13 @@ def getBorderCoords(vehicle: str, minutes: str, startCoord: list) -> (list, list
     result2 = result['features'][0]['geometry']['coordinates'][0]
     lat = []
     lon = []
-    for i in range(len(result2)):
-        lat.append(result2[i][0])
-        lon.append(result2[i][1])
+    for element in result2:
+        lat.append(element[0])
+        lon.append(element[1])
     return lat, lon
 
 
 def makeResult(currentLocalizationArg: list, borderArg: list, poiArg: list) -> list:
     result = [currentLocalizationArg, borderArg]
-    for i in range(len(poiArg)):
-        result.append(poiArg[i])
+    result += poiArg
     return result

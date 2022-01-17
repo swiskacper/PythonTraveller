@@ -1,12 +1,12 @@
 import json
 
 
-def makeAQuery(bounds:list, sunnyAttracions:str, things:list)->str:
+def makeAQuery(bounds: list, sunnyAttracions: str, things: list) -> str:
     query = """
            [out:json][timeout:500];
     ("""
-    for k in range(len(things)):
-        query = query + things[k] + '[' + sunnyAttracions + ']' + '(' + str(bounds[0]) + ',' + str(
+    for element in things:
+        query = query + element + '[' + sunnyAttracions + ']' + '(' + str(bounds[0]) + ',' + str(
             bounds[1]) + ',' + str(bounds[2]) + ',' + str(bounds[3]) + ');'
 
     query = query + ");out body;>;out skel qt;"
@@ -17,13 +17,13 @@ def getLatLonAndComments(coords: tuple) -> tuple:
     lat = []
     lon = []
     comments = []
-    for i in range(len(coords.ways)):
+    for element in coords.ways:
         comment = ''
-        lat.append(float(coords.ways[i].nodes[0].lat))
-        lon.append(float(coords.ways[i].nodes[0].lon))
-        str = json.loads(json.dumps(coords.ways[i].tags))
-        str2 = tuple(coords.ways[i].tags)
-        for k in range(len(str2)):
-            comment = comment + str2[k] + ":" + str[str2[k]] + "<br>"
+        lat.append(float(element.nodes[0].lat))
+        lon.append(float(element.nodes[0].lon))
+        string = json.loads(json.dumps(element.tags))
+        str2 = tuple(element.tags)
+        for element2 in str2:
+            comment = comment + element2 + ":" + string[element2] + "<br>"
         comments.append(comment)
     return comments, lat, lon
